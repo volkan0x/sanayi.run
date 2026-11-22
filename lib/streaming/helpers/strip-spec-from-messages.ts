@@ -1,0 +1,66 @@
+import { UIMessage } from 'ai'
+
+import { linkedCardsFenceToMarkdown } from '@/lib/render/linked-cards-markdown'
+
+const SPEC_FENCE = /```spec[\s\S]*?```/g
+
+// The follow-up suggestions block is the only spec block whose buttons send
+// the user's next message.
+const SUGGESTIONS_MARKER = /"action"\s*:\s*"submitQuery"/
+
+/**
+ * Removes ```spec fenced blocks from assistant message text, keeping the
+ * follow-up suggestions block. Dropping the rest stops prior spec payloads from
+ * spending context window budget on every later turn; keeping the suggestions
+ * leaves the model an example of the format it is asked to keep producing.
+ * Linked Card blocks become a markdown list instead, because they replace the
+ * list the answer would otherwise contain and a follow-up may refer to it.
+ *
+ * The result must depend only on the text passed in, because this runs on the
+ * prompt-cache prefix and a message has to replay identically on every turn.
+ * That is also why this does not reuse the clipboard helper, whose job is
+ * readable output rather than a stable prefix.
+ */
+function stripNonRelatedSpecBlocks(text: string): string {
+  let removed = false
+
+  const stripped = text.replace(SPEC_FENCE, block => {
+    if (SUGGESTIONS_MARKER.test(block)) {
+      return block
+    }
+    removed = true
+    return linkedCardsFenceToMarkdown(block) ?? ''
+  })
+
+  if (!removed) {
+    return text
+  }
+
+  // Only normalize when a block was taken out, so that text without spec
+  // blocks passes through unchanged.
+  return stripped.replace(/\n{3,}/g, '\n\n').trim()
+}
+
+/**
+ * Applies the strip to assistant message text parts before converting to
+ * model messages.
+ */
+export function stripSpecFromMessages(messages: UIMessage[]): UIMessage[] {
+  return messages.map(msg => {
+    if (msg.role !== 'assistant' || !msg.parts) {
+      return msg
+    }
+
+    const parts = msg.parts.map(part => {
+      if (part.type === 'text' && typeof part.text === 'string') {
+        const stripped = stripNonRelatedSpecBlocks(part.text)
+        if (stripped !== part.text) {
+          return { ...part, text: stripped }
+        }
+      }
+      return part
+    })
+
+    return { ...msg, parts }
+  })
+}

@@ -1,21 +1,27 @@
-import { getCurrentUserId } from '@/lib/auth/get-current-user'
-import { isAnonymousMode } from '@/lib/auth/provider'
-import { getModelSelectorData } from '@/lib/model-selector/get-model-selector-data'
+'use client'
 
-import { Chat } from '@/components/chat'
+import { MapErrorBoundary, MapLoadingSpinner, MapMain } from '@/components/map'
 
-export default async function Page() {
-  const userId = await getCurrentUserId()
-  const isCloudDeployment = process.env.MORPHIC_CLOUD_DEPLOYMENT === 'true'
-  const libraryAvailable = !isAnonymousMode()
-  const modelSelectorData = await getModelSelectorData()
+import { MapProvider } from '@/contexts/MapContext'
 
+/**
+ * Map page component
+ *
+ * Following Next.js 16 best practices:
+ * - Client component for real-time map interactions
+ * - Full-screen map layout with Leaflet integration
+ * - Error boundary for graceful error handling
+ * - Loading spinner during initialization
+ */
+export default function MapPage() {
   return (
-    <Chat
-      isGuest={!userId}
-      isCloudDeployment={isCloudDeployment}
-      libraryAvailable={libraryAvailable}
-      modelSelectorData={modelSelectorData}
-    />
+    <div className="relative w-full h-screen">
+      <MapErrorBoundary>
+        <MapProvider>
+          <MapMain />
+          <MapLoadingSpinner />
+        </MapProvider>
+      </MapErrorBoundary>
+    </div>
   )
 }

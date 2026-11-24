@@ -13,8 +13,16 @@ This guide covers the optional features and their configuration in Morphic.
   - [Better Auth](#better-auth)
   - [Supabase](#supabase)
 - [Guest Mode](#guest-mode)
+- [Mapbox example](#mapbox-example)
 - [Other Features](#other-features)
 - [Privacy and Telemetry](./PRIVACY.md)
+
+## Mapbox example
+
+The `/mapbox` route displays a Mapbox Standard map with a clipped landmark and
+a replacement 3D model. Set `NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` to a public
+Mapbox access token before building the app. This token is exposed to browsers,
+so restrict it to your application's URLs in your Mapbox account.
 
 ## Database
 
